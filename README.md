@@ -1,2 +1,2 @@
-# Project---Snake-Game
+# Snake-Game
  Basic snake game in tkinter.
