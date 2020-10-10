@@ -1,0 +1,8 @@
+[MESSAGES CONTROL]
+disable=unused-wildcard-import,
+        wildcard-import,
+        invalid-name,
+        pointless-string-statement,
+
+[FORMAT]
+max-line-length=120
