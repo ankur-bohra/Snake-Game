@@ -8,9 +8,7 @@ GRID_SIZE = 20
 CELL_SIZE = 30
 WIN_SIZE = GRID_SIZE * CELL_SIZE
 
-# Construct window as grid
-grid, widgets = [], []
-
+# Make separate window screens
 window = Tk()
 window.title("Snake Game")
 window.geometry(str(WIN_SIZE)+"x"+str(WIN_SIZE))
@@ -20,13 +18,15 @@ menu.pack(fill=BOTH, expand=True)
 
 game = Frame(window, bg="black")
 game.pack_forget()
-'''
+
+# Build grid
+grid, widgets = [], []
 for y in range(GRID_SIZE):
     row = []
     for x in range(GRID_SIZE):
         row.append(None) # Make space for elements even if they aren't there yet
     grid.append(row)
-'''
+
 def play():
     '''
     Display the game screen and begin all logic
