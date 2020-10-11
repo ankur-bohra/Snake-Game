@@ -3,6 +3,7 @@ disable=unused-wildcard-import,
         wildcard-import,
         invalid-name,
         pointless-string-statement,
+        unnecessary-lambda,
 
 [FORMAT]
 max-line-length=120
