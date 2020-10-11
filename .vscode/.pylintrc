@@ -4,6 +4,8 @@ disable=unused-wildcard-import,
         invalid-name,
         pointless-string-statement,
         unnecessary-lambda,
+        missing-function-docstring,
+        redefined-outer-name
 
 [FORMAT]
 max-line-length=120
