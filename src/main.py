@@ -6,6 +6,9 @@ from tkinter import *
 # Game settings
 GRID_SIZE = 20
 CELL_SIZE = 30
+MIN_LENGTH = 3
+MIN_SPEED = 3
+
 WIN_SIZE = GRID_SIZE * CELL_SIZE
 
 # Make separate window screens
@@ -17,15 +20,10 @@ menu = Frame(window, bg="black")
 menu.pack(fill=BOTH, expand=True)
 
 game = Frame(window, bg="black")
-game.pack_forget()
+game.pack_forget() # Hidden in starting screen
 
-# Build grid
-grid, widgets = [], []
-for y in range(GRID_SIZE):
-    row = []
-    for x in range(GRID_SIZE):
-        row.append(None) # Make space for elements even if they aren't there yet
-    grid.append(row)
+# Main game logic
+grid = [[None] * GRID_SIZE for row in range(GRID_SIZE)]
 
 def play():
     '''
@@ -43,10 +41,10 @@ def play():
             row.append(cell)
         grid.append(row)
 
+    # Place snake
 
-# Parent screens
 
-
+# Create menu
 game_title = Label(menu,
                    text="Snake Game", font=("Arial", 30, "bold"),
                    fg="green", bg="black")
