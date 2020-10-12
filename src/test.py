@@ -42,7 +42,6 @@ def from_rgb(rgb):
 def cell_color(snake):
     no_cells = snake["cells_occupied"]
     g = 255 - no_cells * 5
-    print(g)
     return from_rgb((0, g, 0))
 
 def neighbours(snake_cell):
@@ -70,11 +69,50 @@ def move(snake, direction):
     time.sleep(3)
     print(snake, direction)
 
+def border(cell, side):
+    border_frame = Frame(game, bg="black")
+    cellx = cell["position"][0] * CELL_SIZE
+    celly = cell["position"][1] * CELL_SIZE
+    if side in ["TOP", "BOTTOM"]:
+        border_frame.config(width=CELL_SIZE, height=2)
+        if side == "TOP":
+            border_frame.place(x=cellx + CELL_SIZE/2, y=celly, anchor=N)
+        else:
+            border_frame.place(x=cellx, y=celly + CELL_SIZE - 2, anchor=S)
+    else:
+        border_frame.config(width=2, height=CELL_SIZE)
+        if side == "LEFT":
+            border_frame.place(x=cellx, y=celly, anchor=NW)
+        else:
+            border_frame.place(x=cellx + CELL_SIZE - 2, y=celly, anchor=NW)
+
+
+def outline(snake):
+    current_cell = snake["tail"]
+    while current_cell["next"]:
+        next_cell = current_cell["next"]
+        current_pos, next_pos = current_cell["position"], next_cell["position"]
+        difference = (next_pos[0] - current_pos[0], next_pos[1] - current_pos[1])
+        diffx, diffy = difference[0], difference[1]
+        if diffx == 1:
+            sides = ["TOP", "BOTTOM", "LEFT"]
+        elif diffx == -1:
+            sides = ["TOP", "BOTTOM", "RIGHT"]
+        elif diffy == 1:
+            sides = ["BOTTOM", "LEFT", "RIGHT"]
+        elif diffy == -1:
+            sides = ["TOP", "LEFT", "RIGHT"]
+        for side in sides:
+            border(current_cell, side)
+        print(difference, sides)
+        current_cell = next_cell
+
 snake = {"head":None, "body":[], "tail":None, "cells_occupied": 0, "all":[]}
 head_cell = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
 head_data = {"position":head_cell, "next":None}
-change_cell(head_cell, cell_color(snake))
+change_cell(head_cell, "yellow")
 snake.update({"head":head_data, "cells_occupied":1, "cells":[head_cell]})
+
 while snake["cells_occupied"] <= MIN_LENGTH:
     front = snake["head"] if snake["cells_occupied"] == 1 else snake["body"][-1]
     snake_cell = random.choice(neighbours(front if front else snake["head"]))
@@ -87,7 +125,9 @@ while snake["cells_occupied"] <= MIN_LENGTH:
     snake["cells_occupied"] += 1
     if snake["cells_occupied"] == MIN_LENGTH:
         snake["tail"] = cell_data
+        change_cell(snake_cell, "purple")
     else:
         snake["body"].append(cell_data)
+outline(snake)
 
 window.mainloop()
