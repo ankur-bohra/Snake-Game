@@ -121,18 +121,7 @@ def outline(snake):
             link2 = focus["previous"]
         else:
             break
-'''
-head_cell = {"pos":(10, 12), "next":None, "previous": None}
-body_cell = {"pos":(10, 11), "next":head_cell, "previous": None}
-tail_cell = {"pos":(10, 10), "next":body_cell, "previous": None}
-head_cell.update({"previous": body_cell})
-body_cell.update({"previous": tail_cell})
-change_cell(tail_cell["pos"], "black")
-change_cell(body_cell["pos"], "grey")
-change_cell(head_cell["pos"], "green")
-outline({"tail":tail_cell})
 
-'''
 snake = {
     "head":[],
     "body":[],
