@@ -7,7 +7,8 @@ disable=unused-wildcard-import,
         missing-function-docstring,
         redefined-outer-name,
         invalid-sequence-index,
-        global-statement
+        global-statement,
+        consider-using-enumerate
 
 [FORMAT]
 max-line-length=120
