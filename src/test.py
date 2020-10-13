@@ -3,46 +3,45 @@ Snake game
 '''
 from tkinter import *
 import random
-import time
+import asyncio
 
 # Game settings
 GRID_SIZE = 20
 CELL_SIZE = 30
 MIN_LENGTH = 5
-MAX_LENGTH = 50
 MIN_SPEED = 3
-WIN_SIZE = GRID_SIZE * CELL_SIZE
 
 # Make separate window screens
 window = Tk()
 window.title("Snake Game")
-window.geometry(str(WIN_SIZE)+"x"+str(WIN_SIZE))
+window.geometry(str(GRID_SIZE * CELL_SIZE)+"x"+str(GRID_SIZE * CELL_SIZE))
 
 game = Frame(window, bg="black")
 game.pack(fill=BOTH, expand=True)
 
-grid = [[None] * GRID_SIZE for row in range(GRID_SIZE)]
+grid = []
 
+# State variables
+canmove = True
+movedir = (0, -1)
+
+# Making grid, snake
 for y in range(GRID_SIZE):
+    row = []
     for x in range(GRID_SIZE):
-        color = "black" if (x+y)%2 == 0 else "white"
         cell = Frame(game, bg="black", height=CELL_SIZE, width=CELL_SIZE)
         cell.place(relx=x/GRID_SIZE, rely=y/GRID_SIZE)
-        grid[y][x] = cell
+        row.append(cell)
+    grid.append(row)
 
-def change_cell(pos, color):
-    cellx = pos[0]
-    celly = pos[1]
+def makecell(pos, next_cell, previous_cell):
+    return {"pos":pos, "next":next_cell, "previous":previous_cell}
+
+def color(cell, target):
+    cellx = cell["pos"][0]
+    celly = cell["pos"][1]
     cell = grid[celly][cellx]
-    cell.config(bg=color)
-
-def from_rgb(rgb):
-    return "#%02x%02x%02x" % rgb
-
-def cell_color(snake):
-    no_cells = snake["cells_occupied"]
-    g = 255 - no_cells * 5
-    return from_rgb((0, g, 0))
+    cell.config(bg=target)
 
 def neighbours(cell_pos):
     pos = cell_pos["pos"]
@@ -81,9 +80,9 @@ def border(cell, side):
             border_frame.place(x=cellx, y=celly)
         else:
             border_frame.place(x=cellx + CELL_SIZE, y=celly)
+    return border_frame
 
-
-def outline(snake):
+def outline(snake): 
     dirs = {
         (0, 1): "TOP",
         (0, -1): "BOTTOM",
@@ -102,17 +101,17 @@ def outline(snake):
             pos1 = link1["pos"]
             offset1 = (pos[0] - pos1[0], pos[1] - pos1[1])
             dir1 = dirs[offset1] # pos - pos1
-            borders.remove(dir1)
+            if dir1 in borders:
+                borders.remove(dir1)
         if link2:
             pos2 = link2["pos"]
             offset2 = (pos[0] - pos2[0], pos[1] - pos2[1])
             dir2 = dirs[offset2] # pos - pos2
-            borders.remove(dir2)
-
-        print("Filling borders for", pos, "=>", borders)
+            if dir2 in borders:
+                borders.remove(dir2)
 
         for side in borders:
-            border(focus, side)
+            snake["outline"].append(border(focus, side))
 
         # Move to another cell
         if link1:
@@ -122,37 +121,85 @@ def outline(snake):
         else:
             break
 
-snake = {
-    "head":[],
-    "body":[],
-    "tail":[],
-    "cells_occupied": 0,
-    "all":[]
-}
-head_cell = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
-head_data = {"pos":head_cell, "next":None, "previous":None}
-change_cell(head_cell, "dark green")
-snake.update({"head":head_data, "cells_occupied":1, "cells":[head_cell]})
+def makesnake():
+    snake = {
+        "head":[],
+        "body":[],
+        "tail":[],
+        "positions":[],
+        "outline": [],
+        "cells_occupied": 0
+    }
+    head_pos = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
+    head_cell = makecell(head_pos, None, None)
+    color(head_cell, "dark green")
+    snake.update({"head":head_cell, "cells_occupied":1})
 
-while snake["cells_occupied"] < MIN_LENGTH:
-    latest = snake["head"] if snake["cells_occupied"] == 1 else snake["body"][-1]
-    pos = random.choice(neighbours(latest))
-    while pos in snake["cells"]:
+    while snake["cells_occupied"] < MIN_LENGTH:
+        if snake["cells_occupied"] == 1:
+            latest = snake["head"]
+        else:
+            latest = snake["body"][-1]
+
         pos = random.choice(neighbours(latest))
-    snake["cells"].append(pos)
-    change_cell(pos, "green")
-    cell = {"pos":pos, "next": latest, "previous": None}
-    latest.update({"previous":cell})
+        while pos in snake["positions"]:
+            pos = random.choice(neighbours(latest))
+        snake["positions"].append(pos)
 
-    snake["cells_occupied"] += 1
-    if snake["cells_occupied"] == MIN_LENGTH:
-        snake["tail"] = cell
-    else:
-        snake["body"].append(cell)
-        if snake["cells_occupied"] == 2:
-            snake["head"]["previous"] = cell
+        cell = makecell(pos, latest, None)
+        color(cell, "green")
 
-outline(snake)
+        latest.update({"previous":cell})
+        snake["cells_occupied"] += 1
 
+        if snake["cells_occupied"] == MIN_LENGTH:
+            snake["tail"] = cell
+        else:
+            snake["body"].append(cell)
+            if snake["cells_occupied"] == 2:
+                snake["head"]["previous"] = cell
+    outline(snake)
+    return snake
 
+def movesnake(snake):
+    global canmove
+    global movedir
+    while canmove:
+        cell = snake["tail"]
+        while cell:
+            if cell == snake["tail"]:
+                color(cell, "black") # For tail, clearing won't affect any previous cell
+            else:
+                color(cell, "green") # Other cells will be taken up by previous cells
+
+            if cell == snake["head"]:
+                cell["pos"] = (cell["pos"][0] + movedir[0], cell["pos"][1] + movedir[1])
+                color(cell, "dark green")
+            else:
+                cell["pos"] = cell["next"]["pos"]
+
+            cell = cell["next"]
+
+        for frame in snake["outline"]:
+            frame.destroy()
+        outline(snake)
+
+        asyncio.sleep(0.5)
+
+def movebind(key):
+    key_map = { # The Y signs are flipped since the grid Y is flipped
+        "w": (0, -1),
+        "s": (0, 1),
+        "a": (-1, 0),
+        "d": (1, 0),
+    }
+    key = key.char
+    if canmove and key in key_map.keys():
+        global movedir
+        movedir = key_map[key.lower()]
+
+snake = makesnake()
+movesnake(snake)
+
+window.bind("<KeyPress>", movebind)
 window.mainloop()
