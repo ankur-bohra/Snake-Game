@@ -82,7 +82,7 @@ def border(cell, side):
             border_frame.place(x=cellx + CELL_SIZE, y=celly)
     return border_frame
 
-def outline(snake): 
+def outline(snake):
     dirs = {
         (0, 1): "TOP",
         (0, -1): "BOTTOM",
