@@ -1,17 +1,11 @@
 '''
 Snake game
 '''
-from tkinter import *
 import random
-import asyncio
+from tkinter import *
+from settings import *
 
-# Game settings
-GRID_SIZE = 20
-CELL_SIZE = 30
-MIN_LENGTH = 5
-MIN_SPEED = 3
-
-# Make separate window screens
+# Tkinter focus
 window = Tk()
 window.title("Snake Game")
 window.geometry(str(GRID_SIZE * CELL_SIZE)+"x"+str(GRID_SIZE * CELL_SIZE))
@@ -19,32 +13,53 @@ window.geometry(str(GRID_SIZE * CELL_SIZE)+"x"+str(GRID_SIZE * CELL_SIZE))
 game = Frame(window, bg="black")
 game.pack(fill=BOTH, expand=True)
 
-grid = []
 
-# State variables
-canmove = True
+# Internal states, variables
+state = "PLAYING"
+step = MIN_STEP
 movedir = (0, -1)
 
-# Making grid, snake
-for y in range(GRID_SIZE):
-    row = []
-    for x in range(GRID_SIZE):
-        cell = Frame(game, bg="black", height=CELL_SIZE, width=CELL_SIZE)
-        cell.place(relx=x/GRID_SIZE, rely=y/GRID_SIZE)
-        row.append(cell)
-    grid.append(row)
 
-def makecell(pos, next_cell, previous_cell):
-    return {"pos":pos, "next":next_cell, "previous":previous_cell}
+# Grid formation
+grid = []
+def makegrid():
+    for y in range(GRID_SIZE):
+        row = []
+        for x in range(GRID_SIZE):
+            frame = Frame(game, bg="black", height=CELL_SIZE, width=CELL_SIZE)
+            frame.place(relx=x/GRID_SIZE, rely=y/GRID_SIZE)
+            slot = {"frame":frame, "object":None}
+            row.append(slot)
+        grid.append(row)
 
-def color(cell, target):
-    cellx = cell["pos"][0]
-    celly = cell["pos"][1]
-    cell = grid[celly][cellx]
-    cell.config(bg=target)
 
-def neighbours(cell_pos):
-    pos = cell_pos["pos"]
+# Utility
+def makecell(cell_type, pos, data):
+    cell = {"type": cell_type, "pos":pos}
+    cell.update(data)
+    return  cell
+
+def occupy(cell):
+    color_map = {
+        "head": HEAD_COLOR,
+        "body": BODY_COLOR,
+        "free": GRID_COLOR
+    }
+    for index in range(len(FOOD_STEP_LOSSES)):
+        loss = FOOD_STEP_LOSSES[index]
+        color = FOOD_COLORS[index]
+        name = "food"+str(loss)
+        color_map.update({name:color})
+
+    cellx, celly = cell["pos"][0], cell["pos"][1]
+    slot = grid[celly][cellx]
+    bg = color_map[cell["type"]]
+
+    slot["frame"].config(bg=bg)
+    slot["object"] = cell
+
+def neighbours(cell):
+    pos = cell["pos"]
     cellx = pos[0]
     celly = pos[1]
     cell_neighbours = []
@@ -64,62 +79,28 @@ def neighbours(cell_pos):
         cell_neighbours.extend([(cellx - 1, celly), (cellx + 1, celly)]) # Left, right
     return cell_neighbours
 
-def border(cell, side):
-    border_frame = Frame(game, bg="black")
-    cellx = cell["pos"][0] * CELL_SIZE
-    celly = cell["pos"][1] * CELL_SIZE
-    if side in ["TOP", "BOTTOM"]:
-        border_frame.config(width=CELL_SIZE, height=1, bg="light green")
-        if side == "TOP":
-            border_frame.place(x=cellx, y=celly)
-        else:
-            border_frame.place(x=cellx, y=celly + CELL_SIZE - 1)
-    else:
-        border_frame.config(width=1, height=CELL_SIZE, bg="light green")
-        if side == "LEFT":
-            border_frame.place(x=cellx, y=celly)
-        else:
-            border_frame.place(x=cellx + CELL_SIZE, y=celly)
-    return border_frame
 
-def outline(snake):
-    dirs = {
-        (0, 1): "TOP",
-        (0, -1): "BOTTOM",
-        (1, 0): "LEFT",
-        (-1, 0): "RIGHT",
-    }
+# Generators
+def makefood():
+    global state
+    if state != "PLAYING":
+        return
 
-    focus = snake["tail"]
-    link1 = focus["next"]
-    link2 = focus["previous"]
-    while focus:
-        borders = ["TOP", "BOTTOM", "LEFT", "RIGHT"]
-        pos = focus["pos"]
+    foodx, foody = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
+    while grid[foody][foodx]["object"]:
+        foodx, foody = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
+    food_pos = (foodx, foody)
 
-        if link1:
-            pos1 = link1["pos"]
-            offset1 = (pos[0] - pos1[0], pos[1] - pos1[1])
-            dir1 = dirs[offset1] # pos - pos1
-            if dir1 in borders:
-                borders.remove(dir1)
-        if link2:
-            pos2 = link2["pos"]
-            offset2 = (pos[0] - pos2[0], pos[1] - pos2[1])
-            dir2 = dirs[offset2] # pos - pos2
-            if dir2 in borders:
-                borders.remove(dir2)
+    weighted_losses = []
+    for index in range(len(FOOD_STEP_LOSSES)):
+        loss = FOOD_STEP_LOSSES[index]
+        probability = FOOD_RARITY[index]
 
-        for side in borders:
-            snake["outline"].append(border(focus, side))
+        weighted_losses.extend([loss] * int(probability * 10)) # total weight = 10
+    loss = random.choice(weighted_losses)
 
-        # Move to another cell
-        if link1:
-            focus = focus["next"]
-            link1 = focus["next"]
-            link2 = focus["previous"]
-        else:
-            break
+    food = {"type":"food"+str(loss), "pos":food_pos, "step_loss":loss}
+    occupy(food)
 
 def makesnake():
     snake = {
@@ -131,8 +112,8 @@ def makesnake():
         "cells_occupied": 0
     }
     head_pos = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
-    head_cell = makecell(head_pos, None, None)
-    color(head_cell, "dark green")
+    head_cell = makecell("head", head_pos, {"next": None, "previous":None})
+    occupy(head_cell)
     snake.update({"head":head_cell, "cells_occupied":1})
 
     while snake["cells_occupied"] < MIN_LENGTH:
@@ -146,8 +127,8 @@ def makesnake():
             pos = random.choice(neighbours(latest))
         snake["positions"].append(pos)
 
-        cell = makecell(pos, latest, None)
-        color(cell, "green")
+        cell = makecell("body", pos, {"next": latest, "previous":None})
+        occupy(cell)
 
         latest.update({"previous":cell})
         snake["cells_occupied"] += 1
@@ -158,51 +139,106 @@ def makesnake():
             snake["body"].append(cell)
             if snake["cells_occupied"] == 2:
                 snake["head"]["previous"] = cell
-    outline(snake)
+    # outline(snake)
+    print("Snake finished")
     return snake
 
+
+# Movement
+def collision(snake, obj):
+    global state, step
+    if obj["type"] == "body":
+        state = "DEAD"
+    elif obj["type"].startswith("food"):
+        step -= obj["step_loss"]
+        print(step)
+        # Extend snake from TAIL
+        tail = snake["tail"]
+        pos = tail["pos"]
+        pos1 = tail["next"]["pos"]
+        new_pos = (-(pos[0] - pos1[0]), -(pos[1] - pos1[1]))
+        new_tail = makecell("body", new_pos, {"next": tail, "previous":None})
+
+        snake["tail"] = new_tail
+        tail["previous"] = new_tail
+        snake["body"].append(tail)
+
+        # Make new food but after a delay
+        gen_step = random.randint(FOOD_GEN_STEP_MIN, FOOD_GEN_STEP_MAX)
+        game.after(gen_step, makefood)
+
 def movesnake(snake):
-    global canmove
+    global state
     global movedir
-    if canmove:
+    if state == "PLAYING":
         cell = snake["tail"]
         while cell:
             if cell == snake["tail"]:
-                color(cell, "black") # For tail, clearing won't affect any previous cell
-            else:
-                color(cell, "green") # Other cells will be taken up by previous cells
+                occupy({"type": "free", "pos":cell["pos"]}) # Tail clearing won't affect any previous cell
 
             if cell == snake["head"]:
-                cell["pos"] = (cell["pos"][0] + movedir[0], cell["pos"][1] + movedir[1])
-                color(cell, "dark green")
+                oldx, oldy = cell["pos"][0], cell["pos"][1]
+                newx, newy = oldx + movedir[0], oldy + movedir[1]
+
+                # Handle edge movement
+                if newx == GRID_SIZE:
+                    newx = 0
+                elif newx == -1:
+                    newx = GRID_SIZE - 1
+                elif newy == GRID_SIZE:
+                    newy = 0
+                elif newy == -1:
+                    newy = GRID_SIZE - 1
+
+                cell["pos"] = (newx, newy)
+
+                slot = grid[newy][newx]
+                if slot["object"]:
+                    collision(snake, slot["object"])
+
+                occupy(cell)
             else:
                 cell["pos"] = cell["next"]["pos"]
+                occupy(cell)
 
             cell = cell["next"]
 
-        for frame in snake["outline"]:
-            frame.destroy()
-        outline(snake)
-    
-    def repeat_move():
-        movesnake(snake)
+        # for frame in snake["outline"]:
+            # frame.destroy()
+        # outline(snake)
 
-    game.after(50, repeat_move)
+    if state == "PAUSED" or state == "PLAYING":
+        def move_selfcall():
+            movesnake(snake)
+
+        game.after(step, move_selfcall)
 
 def movebind(key):
-    key_map = { # The Y signs are flipped since the grid Y is flipped
+    global movedir, state
+    key_map = { # The Y signs are flipped since the Y axis is flipped
         "w": (0, -1),
         "s": (0, 1),
         "a": (-1, 0),
-        "d": (1, 0),
+        "d": (1, 0)
     }
-    key = key.char
-    if canmove and key in key_map.keys():
-        global movedir
-        movedir = key_map[key.lower()]
+    key = key.char.lower()
+    # Validate key
+    validkey = key in key_map.keys() and key_map[key][movedir.index(0)] != 0 # in wasd, must be across other axis
+    if validkey and state == "PLAYING":
+        movedir = key_map[key]
 
-snake = makesnake()
-movesnake(snake)
+
+# One life
+def startlife():
+    makegrid()
+    snake = makesnake()
+    movesnake(snake)
+    for _ in range(FOOD_CELLS_PRESENT):
+        makefood()
+
+
+# Start game
+startlife()
 
 window.bind("<KeyPress>", movebind)
 window.mainloop()
