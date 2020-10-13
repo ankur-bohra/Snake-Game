@@ -1,20 +1,13 @@
 '''
-Snake game
+Core game and only required interface
 '''
 import random
 from tkinter import *
 from settings import *
 
-# Tkinter focus
-window = Tk()
-window.title("Snake Game")
-window.geometry(str(GRID_SIZE * CELL_SIZE)+"x"+str(GRID_SIZE * CELL_SIZE))
-
-game = Frame(window, bg="black")
-game.pack(fill=BOTH, expand=True)
-
 
 # Internal states, variables
+game = None
 state = "PLAYING"
 step = MIN_STEP
 movedir = (0, -1)
@@ -23,6 +16,7 @@ movedir = (0, -1)
 # Grid formation
 grid = []
 def makegrid():
+    global game
     for y in range(GRID_SIZE):
         row = []
         for x in range(GRID_SIZE):
@@ -139,14 +133,14 @@ def makesnake():
             snake["body"].append(cell)
             if snake["cells_occupied"] == 2:
                 snake["head"]["previous"] = cell
-    # outline(snake)
-    print("Snake finished")
     return snake
 
 
 # Movement
 def collision(snake, obj):
-    global state, step
+    global state
+    global step
+    global game
     if obj["type"] == "body":
         state = "DEAD"
     elif obj["type"].startswith("food"):
@@ -170,6 +164,7 @@ def collision(snake, obj):
 def movesnake(snake):
     global state
     global movedir
+    global game
     if state == "PLAYING":
         cell = snake["tail"]
         while cell:
@@ -230,15 +225,21 @@ def movebind(key):
 
 # One life
 def startlife():
+    # Start core logic
     makegrid()
     snake = makesnake()
     movesnake(snake)
     for _ in range(FOOD_CELLS_PRESENT):
         makefood()
 
+def playgame(window):
+    # Build required interface
+    def builder():
+        global game
+        game = Frame(window, bg="black")
+        game.pack(fill=BOTH, expand=True)
 
-# Start game
-startlife()
+        startlife()
 
-window.bind("<KeyPress>", movebind)
-window.mainloop()
+        window.bind("<KeyPress>", movebind) # Don't need to bind right before mainloop
+    return builder
