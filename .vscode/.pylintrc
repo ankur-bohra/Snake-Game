@@ -5,7 +5,9 @@ disable=unused-wildcard-import,
         pointless-string-statement,
         unnecessary-lambda,
         missing-function-docstring,
-        redefined-outer-name
+        redefined-outer-name,
+        invalid-sequence-index,
+        global-statement
 
 [FORMAT]
 max-line-length=120
