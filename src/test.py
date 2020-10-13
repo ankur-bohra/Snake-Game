@@ -164,7 +164,7 @@ def makesnake():
 def movesnake(snake):
     global canmove
     global movedir
-    while canmove:
+    if canmove:
         cell = snake["tail"]
         while cell:
             if cell == snake["tail"]:
@@ -183,8 +183,11 @@ def movesnake(snake):
         for frame in snake["outline"]:
             frame.destroy()
         outline(snake)
+    
+    def repeat_move():
+        movesnake(snake)
 
-        asyncio.sleep(0.5)
+    game.after(50, repeat_move)
 
 def movebind(key):
     key_map = { # The Y signs are flipped since the grid Y is flipped
