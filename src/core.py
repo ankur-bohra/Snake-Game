@@ -8,8 +8,9 @@ from settings import *
 
 # Internal states, variables
 game = None
+step = 300
+score = {"frame": None, "value": 0}
 state = "PLAYING"
-step = MIN_STEP
 movedir = (0, -1)
 
 
@@ -39,10 +40,10 @@ def occupy(cell):
         "body": BODY_COLOR,
         "free": GRID_COLOR
     }
-    for index in range(len(FOOD_STEP_LOSSES)):
-        loss = FOOD_STEP_LOSSES[index]
+    for index in range(len(FOOD_POINTS)):
+        points = FOOD_POINTS[index]
         color = FOOD_COLORS[index]
-        name = "food"+str(loss)
+        name = "food"+str(points)
         color_map.update({name:color})
 
     cellx, celly = cell["pos"][0], cell["pos"][1]
@@ -85,15 +86,15 @@ def makefood():
         foodx, foody = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
     food_pos = (foodx, foody)
 
-    weighted_losses = []
-    for index in range(len(FOOD_STEP_LOSSES)):
-        loss = FOOD_STEP_LOSSES[index]
+    weighted_points = []
+    for index in range(len(FOOD_POINTS)):
+        points = FOOD_POINTS[index]
         probability = FOOD_RARITY[index]
 
-        weighted_losses.extend([loss] * int(probability * 10)) # total weight = 10
-    loss = random.choice(weighted_losses)
+        weighted_points.extend([points] * int(probability * 10)) # total weight = 10
+    points = random.choice(weighted_points)
 
-    food = {"type":"food"+str(loss), "pos":food_pos, "step_loss":loss}
+    food = {"type":"food"+str(points), "pos":food_pos, "points":points}
     occupy(food)
 
 def makesnake():
@@ -144,8 +145,8 @@ def collision(snake, obj):
     if obj["type"] == "body":
         state = "DEAD"
     elif obj["type"].startswith("food"):
-        step -= obj["step_loss"]
-        print(step)
+        score["value"] += obj["points"]
+        score["label"].config(text="Score: "+str(score["value"]))
         # Extend snake from TAIL
         tail = snake["tail"]
         pos = tail["pos"]
@@ -232,14 +233,18 @@ def startlife():
     for _ in range(FOOD_CELLS_PRESENT):
         makefood()
 
-def playgame(window):
-    # Build required interface
-    def builder():
-        global game
-        game = Frame(window, bg="black")
-        game.pack(fill=BOTH, expand=True)
+def playgame(window, mode_step):
+    global game, step, score
+    step = mode_step
+    game = Frame(window, bg="black")
+    game.pack(fill=BOTH, expand=True)
 
-        startlife()
+    startlife()
 
-        window.bind("<KeyPress>", movebind) # Don't need to bind right before mainloop
-    return builder
+    label = Label(game,
+                  text="Score: 0", font=("Arial", 10, "bold"),
+                  fg="white", bg="black", width=8)
+    label.place(x=10, y=10)
+    score["label"] = label
+
+    window.bind("<KeyPress>", movebind) # Don't need to bind right before mainloop
