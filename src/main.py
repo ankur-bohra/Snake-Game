@@ -5,6 +5,6 @@ from interface import *
 from core import *
 
 window = buildwindow()
-displaymenu(window, playgame(window))
+displaymenu(window, playgame)
 
 window.mainloop()
