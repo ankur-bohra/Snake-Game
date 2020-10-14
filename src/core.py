@@ -6,10 +6,13 @@ from tkinter import *
 from settings import *
 
 
-# Internal states, variables
+# Globals
 game = None
-step = 300
+end_game = None # Pass down score update function from interface
 score = {"frame": None, "value": 0}
+step = 300
+
+# Semi-globals
 state = "PLAYING"
 movedir = (0, -1)
 
@@ -73,7 +76,6 @@ def neighbours(cell):
         cell_neighbours.extend([(cellx, celly - 1), (cellx, celly + 1)]) # Above, below
         cell_neighbours.extend([(cellx - 1, celly), (cellx + 1, celly)]) # Left, right
     return cell_neighbours
-
 
 # Generators
 def makefood():
@@ -144,6 +146,7 @@ def collision(snake, obj):
     global game
     if obj["type"] == "body":
         state = "DEAD"
+        end_game(score["value"])
     elif obj["type"].startswith("food"):
         score["value"] += obj["points"]
         score["label"].config(text="Score: "+str(score["value"]))
@@ -233,18 +236,27 @@ def startlife():
     for _ in range(FOOD_CELLS_PRESENT):
         makefood()
 
-def playgame(window, mode_step):
-    global game, step, score
+def playgame(window, mode_step, passed_ender):
+    global game, step, score, end_game
+
+    # Initialize globals
     step = mode_step
+
     game = Frame(window, bg="black")
     game.pack(fill=BOTH, expand=True)
 
+    end_game = passed_ender
+
+    # Start a single life
     startlife()
 
+    # Score above cell not the other way round
     label = Label(game,
                   text="Score: 0", font=("Arial", 10, "bold"),
                   fg="white", bg="black", width=8)
     label.place(x=10, y=10)
     score["label"] = label
 
+
     window.bind("<KeyPress>", movebind) # Don't need to bind right before mainloop
+    return game # Pass up the window so interface can clean it

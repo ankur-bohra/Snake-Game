@@ -1,10 +1,9 @@
 '''
 One program to combine all screens and the game
 '''
-from interface import *
-from core import *
+from interface import makewindow, displaymenu
 
-window = buildwindow()
-displaymenu(window, playgame)
+window = makewindow()
+displaymenu()
 
 window.mainloop()
