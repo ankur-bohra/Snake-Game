@@ -6,7 +6,7 @@ from core import playgame
 from settings import *
 
 window = None
-scores = []
+scores = {}
 screens = []
 
 def makewindow():
@@ -23,16 +23,36 @@ def clearscreens():
     for screen in screens:
         screen.destroy()
 
-def endgame(score):
-    global scores
-    scores.append(score)
-    clearscreens()
-    displaymenu()
+def endgame(score, mode_step):
+    # Show a dying screen
+    game = screens[-1]
+    window.unbind("<KeyPress")
 
-    return endgame
+    died_label = Label(game,
+                       text="You Died :(", font=("Arial", 30, "bold"),
+                       fg="white", bg="black")
+    died_label.place(relx=0.34, rely=0.3)
+    score_label = Label(game,
+                        text="Score: "+str(score), font=("Arial", 19),
+                        fg="white", bg="black")
+    score_label.place(relx=0.5, rely=0.41, anchor=CENTER)
+    cont_label = Label(game,
+                       text="Press [ENTER] to continue", font=("Arial", 15, "bold"),
+                       fg="grey", bg="black")
+    cont_label.place(relx=0.3, rely=0.8)
+
+    def resume(key):
+        if key.keysym == "Return":
+            if score > 0:
+                global scores
+                mode = GAME_MODES[GAME_STEPS.index(mode_step)]
+                scores[mode].append(score)
+                clearscreens()
+                displaymenu()
+    window.bind("<Return>", resume)
 
 def displaymodes():
-    global window
+    global window, scores
     clearscreens()
 
     modes_screen = Frame(window, bg="black")
@@ -72,66 +92,96 @@ def displaymodes():
     back_button.place(relx=0.03, rely=0.9)
 
 def displayscore():
-    global window, scores
-    scores.sort(reverse=True)
-    scores = scores[:7] # upto 7 highscores stored
+    def showmode(mode_no):
+        if mode_no > len(GAME_MODES) - 1:
+            mode_no = 0
+        global window, scores
+        mode = GAME_MODES[mode_no]
+        scores[mode].sort(reverse=True)
+        scores[mode] = scores[mode][:7] # upto 7 highscores stored
 
-    clearscreens()
+        clearscreens()
 
-    score_screen = Frame(window, bg="black")
-    screens.append(score_screen)
-    score_screen.pack(fill=BOTH, expand=True)
+        score_screen = Frame(window, bg="black")
+        screens.append(score_screen)
+        score_screen.pack(fill=BOTH, expand=True)
 
-    screen_title = Label(score_screen,
-                         text="Highscores", font=("Arial", 30, "bold"),
-                         fg="green", bg="black")
-    screen_title.place(relx=0.32, rely=0.1)
+        screen_title = Label(score_screen,
+                             text="Highscores", font=("Arial", 30, "bold"),
+                             fg="green", bg="black")
+        screen_title.place(relx=0.32, rely=0.1)
 
-    rank_header = Label(score_screen,
-                        text="Rank", font=("Arial", 15, "bold"),
-                        fg="grey", bg="black")
-    rank_header.place(relx=0.25, rely=0.25)
+        mode_label = Label(score_screen,
+                           text=mode, font=("Arial", 15, "bold"),
+                           fg="light green", bg="black")
+        mode_label.place(relx=0.5, rely=0.22, anchor=CENTER)
 
-    score_header = Label(score_screen,
-                         text="Score", font=("Arial", 15, "bold"),
-                         fg="grey", bg="black")
-    score_header.place(relx=0.65, rely=0.25)
+        def prevmode():
+            showmode(mode_no - 1)
+        def nextmode():
+            showmode(mode_no + 1)
+        previous_button = Button(score_screen,
+                                 borderwidth=0,
+                                 text="<", font=("Arial", 10, "bold"),
+                                 fg="white", bg="black", activebackground="light grey",
+                                 height=1, width=1,
+                                 command=prevmode)
+        previous_button.place(relx=0.3, rely=0.2)
 
-    back_button = Button(score_screen,
-                         borderwidth=3, relief=RIDGE,
-                         text="Back", font=("Arial", 15, "bold"),
-                         fg="white", bg="grey", activebackground="light grey",
-                         width=5,
-                         command=displaymenu)
-    back_button.place(relx=0.03, rely=0.9)
+        next_button = Button(score_screen,
+                             borderwidth=0,
+                             text=">", font=("Arial", 10, "bold"),
+                             fg="white", bg="black", activebackground="light grey",
+                             height=1, width=1,
+                             command=nextmode)
+        next_button.place(relx=0.7, rely=0.2)
 
-    if len(scores) == 0:
-        scores = ["N.A"] * 3 # Fill with placeholders
-
-    rank_map = ["gold", "thistle3", "sienna4"]
-
-    for index in range(len(scores)):
-        score = scores[index]
-        rank = index + 1
-        if rank <= len(rank_map):
-            color = rank_map[rank - 1]
-        else:
-            color = "white"
         rank_header = Label(score_screen,
-                            text=rank, font=("Arial", 15, "bold"),
-                            fg=color, bg="black")
-        rank_header.place(relx=0.28, rely=0.25 + rank * 0.075)
+                            text="Rank", font=("Arial", 15, "bold"),
+                            fg="grey", bg="black")
+        rank_header.place(relx=0.25, rely=0.25)
 
         score_header = Label(score_screen,
-                             text=score, font=("Arial", 15, "bold"),
-                             fg=color, bg="black")
-        score_header.place(relx=0.66, rely=0.25 + rank * 0.075)
+                             text="Score", font=("Arial", 15, "bold"),
+                             fg="grey", bg="black")
+        score_header.place(relx=0.65, rely=0.25)
 
-    if len(scores) == 0:
-        scores = [] # Placeholders only temporary
+        back_button = Button(score_screen,
+                             borderwidth=3, relief=RIDGE,
+                             text="Back", font=("Arial", 15, "bold"),
+                             fg="white", bg="grey", activebackground="light grey",
+                             width=5,
+                             command=displaymenu)
+        back_button.place(relx=0.03, rely=0.9)
+
+        if len(scores[mode]) == 0:
+            scores[mode] = ["N.A"] * 3 # Fill with placeholders
+
+        rank_map = ["gold", "thistle3", "sienna4"]
+
+        for index in range(len(scores[mode])):
+            score = scores[mode][index]
+            rank = index + 1
+            if rank <= len(rank_map):
+                color = rank_map[rank - 1]
+            else:
+                color = "white"
+            rank_header = Label(score_screen,
+                                text=rank, font=("Arial", 15, "bold"),
+                                fg=color, bg="black")
+            rank_header.place(relx=0.28, rely=0.25 + rank * 0.075)
+
+            score_header = Label(score_screen,
+                                 text=score, font=("Arial", 15, "bold"),
+                                 fg=color, bg="black")
+            score_header.place(relx=0.66, rely=0.25 + rank * 0.075)
+
+        if scores[mode] == ["N.A"] * 3:
+            scores[mode] = [] # Placeholders only temporary
+    showmode(0)
 
 def displaymenu():
-    global window
+    global window, scores
     clearscreens()
 
     menu = Frame(window, bg="black")
@@ -158,3 +208,7 @@ def displaymenu():
                         command=command)
         button.place(relx=.375, rely=0.4 + 0.145 * n)
         n += 1
+
+    # Intialise scores
+    for mode in GAME_MODES:
+        scores[mode] = []

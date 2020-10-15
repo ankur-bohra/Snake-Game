@@ -14,7 +14,7 @@ step = 300
 
 # Semi-globals
 state = "PLAYING"
-movedir = (0, -1)
+movedir = (0, 0)
 
 
 # Grid formation
@@ -32,29 +32,37 @@ def makegrid():
 
 
 # Utility
+def reset():
+    global grid, game, end_game, score, state
+    grid = []
+    game, end_game = None, None
+    score["value"] = 0
+
 def makecell(cell_type, pos, data):
     cell = {"type": cell_type, "pos":pos}
     cell.update(data)
     return  cell
 
-def occupy(cell):
-    color_map = {
+
+color_map = {
         "head": HEAD_COLOR,
         "body": BODY_COLOR,
         "free": GRID_COLOR
     }
-    for index in range(len(FOOD_POINTS)):
-        points = FOOD_POINTS[index]
-        color = FOOD_COLORS[index]
-        name = "food"+str(points)
-        color_map.update({name:color})
+for index in range(len(FOOD_POINTS)):
+    points = FOOD_POINTS[index]
+    color = FOOD_COLORS[index]
+    name = "food"+str(points)
+    color_map.update({name:color})
+def occupy(cell):
+    if grid != [] and state == "PLAYING":
+        cellx, celly = cell["pos"][0], cell["pos"][1]
 
-    cellx, celly = cell["pos"][0], cell["pos"][1]
-    slot = grid[celly][cellx]
-    bg = color_map[cell["type"]]
+        bg = color_map[cell["type"]]
 
-    slot["frame"].config(bg=bg)
-    slot["object"] = cell
+        slot = grid[celly][cellx]
+        slot["frame"].config(bg=bg)
+        slot["object"] = cell
 
 def neighbours(cell):
     pos = cell["pos"]
@@ -76,6 +84,12 @@ def neighbours(cell):
         cell_neighbours.extend([(cellx, celly - 1), (cellx, celly + 1)]) # Above, below
         cell_neighbours.extend([(cellx - 1, celly), (cellx + 1, celly)]) # Left, right
     return cell_neighbours
+
+def die():
+    global state, step
+    state = "DEAD"
+    end_game(score["value"], step)
+    reset()
 
 # Generators
 def makefood():
@@ -111,7 +125,7 @@ def makesnake():
     head_pos = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
     head_cell = makecell("head", head_pos, {"next": None, "previous":None})
     occupy(head_cell)
-    snake.update({"head":head_cell, "cells_occupied":1})
+    snake.update({"head":head_cell, "cells_occupied":1, "positions":[head_pos]})
 
     while snake["cells_occupied"] < MIN_LENGTH:
         if snake["cells_occupied"] == 1:
@@ -144,9 +158,9 @@ def collision(snake, obj):
     global state
     global step
     global game
+    global grid
     if obj["type"] == "body":
-        state = "DEAD"
-        end_game(score["value"])
+        die()
     elif obj["type"].startswith("food"):
         score["value"] += obj["points"]
         score["label"].config(text="Score: "+str(score["value"]))
@@ -165,15 +179,29 @@ def collision(snake, obj):
         gen_step = random.randint(FOOD_GEN_STEP_MIN, FOOD_GEN_STEP_MAX)
         game.after(gen_step, makefood)
 
+def defaultdir(snake):
+    neighbour_pos = neighbours(snake["head"])
+    for pos in neighbour_pos:
+        if pos in snake["positions"]:
+            neighbour_pos.remove(pos)
+
+    next_pos = random.choice(neighbour_pos)
+    print(next_pos, snake["positions"])
+    pos = snake["head"]["pos"]
+    randomdir = (next_pos[0] - pos[0], - (next_pos[1] - pos[1])) # Y axis is flipped
+    return randomdir
+
 def movesnake(snake):
     global state
     global movedir
     global game
+    if movedir == (0, 0): # Set starting direction
+        movedir = defaultdir(snake)
     if state == "PLAYING":
         cell = snake["tail"]
         while cell:
             if cell == snake["tail"]:
-                occupy({"type": "free", "pos":cell["pos"]}) # Tail clearing won't affect any previous cell
+                occupy({"type": "free", "pos":cell["pos"]}) # Clear tail cell
 
             if cell == snake["head"]:
                 oldx, oldy = cell["pos"][0], cell["pos"][1]
@@ -192,9 +220,11 @@ def movesnake(snake):
                 cell["pos"] = (newx, newy)
 
                 slot = grid[newy][newx]
+                if cell["pos"] in snake["positions"]:
+                    die()
+                    break
                 if slot["object"]:
                     collision(snake, slot["object"])
-
                 occupy(cell)
             else:
                 cell["pos"] = cell["next"]["pos"]
@@ -202,15 +232,11 @@ def movesnake(snake):
 
             cell = cell["next"]
 
-        # for frame in snake["outline"]:
-            # frame.destroy()
-        # outline(snake)
-
-    if state == "PAUSED" or state == "PLAYING":
-        def move_selfcall():
-            movesnake(snake)
-
-        game.after(step, move_selfcall)
+        if state == "PLAYING": # When the loop breaks check the state again, state may have changed
+            def move_selfcall():
+                global state
+                movesnake(snake)
+            game.after(step, move_selfcall)
 
 def movebind(key):
     global movedir, state
@@ -227,16 +253,35 @@ def movebind(key):
         movedir = key_map[key]
 
 
-# One life
-def startlife():
+# Combine game
+def startlife(window):
+    global state
+    state = "PLAYING"
     # Start core logic
     makegrid()
     snake = makesnake()
-    movesnake(snake)
-    for _ in range(FOOD_CELLS_PRESENT):
-        makefood()
+
+    # Listen for some input before starting movement
+    label = Label(game,
+                  text="Press [ENTER] to start", font=("Arial", 15, "bold"),
+                  fg="white", bg="black", width=30)
+    label.place(relx=0.2, rely=0.45)
+
+    def startmechanics(key):
+        if key.keysym == "Return":
+            global state
+            state = "PLAYING"
+            movesnake(snake)
+            for _ in range(FOOD_CELLS_PRESENT):
+                makefood()
+            window.unbind("<Return>")
+            label.destroy()
+
+    state = "WAITING"
+    window.bind("<Return>", startmechanics)
 
 def playgame(window, mode_step, passed_ender):
+    print("-------- PLAYING GAME --------")
     global game, step, score, end_game
 
     # Initialize globals
@@ -248,15 +293,21 @@ def playgame(window, mode_step, passed_ender):
     end_game = passed_ender
 
     # Start a single life
-    startlife()
+    startlife(window)
 
-    # Score above cell not the other way round
-    label = Label(game,
-                  text="Score: 0", font=("Arial", 10, "bold"),
-                  fg="white", bg="black", width=8)
-    label.place(x=10, y=10)
-    score["label"] = label
+    def completesetup(): # Don't overwrite bind before input
+        global state, game
+        if state == "PLAYING":
+            # Score above cell not the other way round
+            label = Label(game,
+                          text="Score: 0", font=("Arial", 10, "bold"),
+                          fg="white", bg="black", width=8)
+            label.place(x=10, y=10)
+            score["label"] = label
 
+            window.bind("<KeyPress>", movebind) # Don't need to bind right before mainloop
+        elif game:
+            game.after(500, completesetup)
+    completesetup()
 
-    window.bind("<KeyPress>", movebind) # Don't need to bind right before mainloop
     return game # Pass up the window so interface can clean it
