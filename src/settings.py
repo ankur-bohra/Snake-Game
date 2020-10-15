@@ -5,7 +5,7 @@ GRID_SIZE = 20 # cells
 CELL_SIZE = 30 # px
 GRID_COLOR = "black"
 
-MIN_LENGTH = 5 # cells
+MIN_LENGTH = 3 # cells
 BODY_COLOR = "green" # body + tail
 HEAD_COLOR = "dark green"
 
