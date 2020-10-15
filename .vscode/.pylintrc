@@ -8,7 +8,9 @@ disable=unused-wildcard-import,
         redefined-outer-name,
         invalid-sequence-index,
         global-statement,
-        consider-using-enumerate
+        consider-using-enumerate,
+        too-many-locals,
+        too-many-branches
 
 [FORMAT]
 max-line-length=120
