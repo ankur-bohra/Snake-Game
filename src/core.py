@@ -62,7 +62,15 @@ def occupy(cell):
 
         slot = grid[celly][cellx]
         slot["frame"].config(bg=bg)
+        if slot["object"] and slot["object"]["type"].startswith("food"):
+            slot["object"]["foodpoints"].destroy()
         slot["object"] = cell
+
+        if cell["type"].startswith("food"):
+            pts = cell["points"]
+            pts_label = Label(slot["frame"], text=pts, bg=bg, font=("Arial", 10), fg="black")
+            pts_label.place(relx=0.5, rely=0.5, anchor=CENTER)
+            slot["object"]["foodpoints"] = pts_label
 
 def neighbours(cell):
     pos = cell["pos"]
@@ -111,6 +119,7 @@ def makefood():
     points = random.choice(weighted_points)
 
     food = {"type":"food"+str(points), "pos":food_pos, "points":points}
+
     occupy(food)
 
 def makesnake():
