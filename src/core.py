@@ -33,8 +33,9 @@ def makegrid():
 
 # Utility
 def reset():
-    global grid, game, end_game, score, state
+    global grid, game, end_game, score, state, movedir
     grid = []
+    movedir = (0, 0) # So the next life find movedir again
     game, end_game = None, None
     score["value"] = 0
 
@@ -43,10 +44,9 @@ def makecell(cell_type, pos, data):
     cell.update(data)
     return  cell
 
-
 color_map = {
-        "head": HEAD_COLOR,
-        "body": BODY_COLOR,
+        "snakehead": HEAD_COLOR,
+        "snakebody": BODY_COLOR,
         "free": GRID_COLOR
     }
 for index in range(len(FOOD_POINTS)):
@@ -86,7 +86,7 @@ def neighbours(cell):
     return cell_neighbours
 
 def die():
-    global state, step
+    global state, step, score
     state = "DEAD"
     end_game(score["value"], step)
     reset()
@@ -123,7 +123,7 @@ def makesnake():
         "cells_occupied": 0
     }
     head_pos = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
-    head_cell = makecell("head", head_pos, {"next": None, "previous":None})
+    head_cell = makecell("snakehead", head_pos, {"next": None, "previous":None})
     occupy(head_cell)
     snake.update({"head":head_cell, "cells_occupied":1, "positions":[head_pos]})
 
@@ -138,7 +138,7 @@ def makesnake():
             pos = random.choice(neighbours(latest))
         snake["positions"].append(pos)
 
-        cell = makecell("body", pos, {"next": latest, "previous":None})
+        cell = makecell("snakebody", pos, {"next": latest, "previous":None})
         occupy(cell)
 
         latest.update({"previous":cell})
@@ -159,7 +159,7 @@ def collision(snake, obj):
     global step
     global game
     global grid
-    if obj["type"] == "body":
+    if obj["type"].startswith("snake"):
         die()
     elif obj["type"].startswith("food"):
         score["value"] += obj["points"]
@@ -169,7 +169,7 @@ def collision(snake, obj):
         pos = tail["pos"]
         pos1 = tail["next"]["pos"]
         new_pos = (-(pos[0] - pos1[0]), -(pos[1] - pos1[1]))
-        new_tail = makecell("body", new_pos, {"next": tail, "previous":None})
+        new_tail = makecell("snakebody", new_pos, {"next": tail, "previous":None})
 
         snake["tail"] = new_tail
         tail["previous"] = new_tail
@@ -186,7 +186,6 @@ def defaultdir(snake):
             neighbour_pos.remove(pos)
 
     next_pos = random.choice(neighbour_pos)
-    print(next_pos, snake["positions"])
     pos = snake["head"]["pos"]
     randomdir = (next_pos[0] - pos[0], - (next_pos[1] - pos[1])) # Y axis is flipped
     return randomdir
@@ -220,9 +219,6 @@ def movesnake(snake):
                 cell["pos"] = (newx, newy)
 
                 slot = grid[newy][newx]
-                if cell["pos"] in snake["positions"]:
-                    die()
-                    break
                 if slot["object"]:
                     collision(snake, slot["object"])
                 occupy(cell)
@@ -281,7 +277,6 @@ def startlife(window):
     window.bind("<Return>", startmechanics)
 
 def playgame(window, mode_step, passed_ender):
-    print("-------- PLAYING GAME --------")
     global game, step, score, end_game
 
     # Initialize globals
