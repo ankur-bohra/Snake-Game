@@ -39,7 +39,7 @@ def endgame(score, mode_step):
     cont_label = Label(game,
                        text="Press [ENTER] to continue", font=("Arial", 15, "bold"),
                        fg="grey", bg="black")
-    cont_label.place(relx=0.3, rely=0.8)
+    cont_label.place(relx=0.3, rely=0.85)
 
     def resume(key):
         global scores
@@ -53,18 +53,25 @@ def endgame(score, mode_step):
             displaymenu()
     window.bind("<Return>", resume)
 
+def displaycredits(frame):
+    credits_label = Label(frame,
+                          fg="grey", bg="black",
+                          text="Made by Ankur Bohra in tkinter", font=("Arial", 10))
+    credits_label.place(relx=0.5, rely=0.935, anchor=CENTER)
+
 def displaymodes():
     global window, scores
     clearscreens()
 
     modes_screen = Frame(window, bg="black")
     screens.append(modes_screen)
+    displaycredits(modes_screen)
     modes_screen.pack(fill=BOTH, expand=True)
 
     mode_title = Label(modes_screen,
                        text="Game Mode", font=("Arial", 30, "bold"),
                        fg="green", bg="black")
-    mode_title.place(relx=0.3, rely=0.2)
+    mode_title.place(relx=0.5, rely=0.2, anchor=CENTER)
 
     def playmode(mode_step):
         def command():
@@ -83,7 +90,7 @@ def displaymodes():
                         fg="black", bg="green", activebackground="light green",
                         width=9,
                         command=playmode(step))
-        button.place(relx=.34, rely=0.4 + index*0.12)
+        button.place(relx=0.5, rely=0.4 + index*0.12, anchor=CENTER)
 
     back_button = Button(modes_screen,
                          borderwidth=3, relief=RIDGE,
@@ -106,17 +113,18 @@ def displayscore():
 
         score_screen = Frame(window, bg="black")
         screens.append(score_screen)
+        displaycredits(score_screen)
         score_screen.pack(fill=BOTH, expand=True)
 
         screen_title = Label(score_screen,
                              text="Highscores", font=("Arial", 30, "bold"),
                              fg="green", bg="black")
-        screen_title.place(relx=0.32, rely=0.1)
+        screen_title.place(relx=0.5, rely=0.15, anchor=CENTER)
 
         mode_label = Label(score_screen,
                            text=mode, font=("Arial", 15, "bold"),
                            fg="light green", bg="black")
-        mode_label.place(relx=0.5, rely=0.22, anchor=CENTER)
+        mode_label.place(relx=0.5, rely=0.23, anchor=CENTER)
 
         def prevmode():
             showmode(mode_no - 1)
@@ -128,7 +136,7 @@ def displayscore():
                                  fg="white", bg="black", activebackground="light grey",
                                  height=1, width=1,
                                  command=prevmode)
-        previous_button.place(relx=0.3, rely=0.2)
+        previous_button.place(relx=0.3, rely=0.23, anchor=CENTER)
 
         next_button = Button(score_screen,
                              borderwidth=0,
@@ -136,17 +144,17 @@ def displayscore():
                              fg="white", bg="black", activebackground="light grey",
                              height=1, width=1,
                              command=nextmode)
-        next_button.place(relx=0.7, rely=0.2)
+        next_button.place(relx=0.7, rely=0.23, anchor=CENTER)
 
         rank_header = Label(score_screen,
                             text="Rank", font=("Arial", 15, "bold"),
                             fg="grey", bg="black")
-        rank_header.place(relx=0.25, rely=0.25)
+        rank_header.place(relx=0.3, rely=0.3, anchor=CENTER)
 
         score_header = Label(score_screen,
                              text="Score", font=("Arial", 15, "bold"),
                              fg="grey", bg="black")
-        score_header.place(relx=0.65, rely=0.25)
+        score_header.place(relx=0.7, rely=0.3, anchor=CENTER)
 
         back_button = Button(score_screen,
                              borderwidth=3, relief=RIDGE,
@@ -171,12 +179,12 @@ def displayscore():
             rank_header = Label(score_screen,
                                 text=rank, font=("Arial", 15, "bold"),
                                 fg=color, bg="black")
-            rank_header.place(relx=0.28, rely=0.25 + rank * 0.075)
+            rank_header.place(relx=0.3, rely=0.3 + rank * 0.075, anchor=CENTER)
 
             score_header = Label(score_screen,
                                  text=score, font=("Arial", 15, "bold"),
                                  fg=color, bg="black")
-            score_header.place(relx=0.66, rely=0.25 + rank * 0.075)
+            score_header.place(relx=0.7, rely=0.3 + rank * 0.075, anchor=CENTER)
 
         if scores[mode] == ["N.A"] * 3:
             scores[mode] = [] # Placeholders only temporary
@@ -188,6 +196,7 @@ def displaymenu():
 
     menu = Frame(window, bg="black")
     screens.append(menu)
+    displaycredits(menu)
     menu.pack(fill=BOTH, expand=True)
 
     buttons = {
@@ -197,7 +206,7 @@ def displaymenu():
     game_title = Label(menu,
                        text="Snake Game", font=("Arial", 30, "bold"),
                        fg="green", bg="black")
-    game_title.place(relx=0.29, rely=0.2)
+    game_title.place(relx=0.5, rely=0.2, anchor=CENTER)
 
     n = 0
     for buttonName in buttons:
@@ -208,7 +217,7 @@ def displaymenu():
                         fg="black", bg="green", activebackground="light green",
                         width=7,
                         command=command)
-        button.place(relx=.375, rely=0.4 + 0.145 * n)
+        button.place(relx=0.5, rely=0.4 + 0.145 * n, anchor=CENTER)
         n += 1
 
     # Intialise scores
