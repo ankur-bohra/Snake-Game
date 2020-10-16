@@ -26,7 +26,7 @@ def clearscreens():
 def endgame(score, mode_step):
     # Show a dying screen
     game = screens[-1]
-    window.unbind("<KeyPress")
+    window.unbind("<KeyPress>")
 
     died_label = Label(game,
                        text="You Died :(", font=("Arial", 30, "bold"),
@@ -42,13 +42,15 @@ def endgame(score, mode_step):
     cont_label.place(relx=0.3, rely=0.8)
 
     def resume(key):
+        global scores
         if key.keysym == "Return":
             if score > 0:
-                global scores
                 mode = GAME_MODES[GAME_STEPS.index(mode_step)]
-                scores[mode].append(score)
-                clearscreens()
-                displaymenu()
+                mode_scores = scores[mode]
+                mode_scores.append(score)
+                scores[mode] = mode_scores
+            clearscreens()
+            displaymenu()
     window.bind("<Return>", resume)
 
 def displaymodes():
@@ -93,9 +95,9 @@ def displaymodes():
 
 def displayscore():
     def showmode(mode_no):
+        global window, scores
         if mode_no > len(GAME_MODES) - 1:
             mode_no = 0
-        global window, scores
         mode = GAME_MODES[mode_no]
         scores[mode].sort(reverse=True)
         scores[mode] = scores[mode][:7] # upto 7 highscores stored
@@ -210,5 +212,6 @@ def displaymenu():
         n += 1
 
     # Intialise scores
-    for mode in GAME_MODES:
-        scores[mode] = []
+    if scores == {}:
+        for mode in GAME_MODES:
+            scores[mode] = []
