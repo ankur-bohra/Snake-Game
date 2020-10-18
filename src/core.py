@@ -15,6 +15,7 @@ step = 300
 # Semi-globals
 state = "PLAYING"
 movedir = (0, 0)
+powerups = {}
 
 
 # Grid formation
@@ -54,6 +55,11 @@ for index in range(len(FOOD_POINTS)):
     color = FOOD_COLORS[index]
     name = "food"+str(points)
     color_map.update({name:color})
+for index in range(len(POWERUP_TYPES)):
+    powerup_type = POWERUP_TYPES[index]
+    color = POWERUP_COLORS[index]
+    name = "powerup"+str(powerup_type)
+    color_map.update({name:color})
 def occupy(cell):
     if grid != [] and state == "PLAYING":
         cellx, celly = cell["pos"][0], cell["pos"][1]
@@ -62,15 +68,24 @@ def occupy(cell):
 
         slot = grid[celly][cellx]
         slot["frame"].config(bg=bg)
-        if slot["object"] and slot["object"]["type"].startswith("food"):
-            slot["object"]["foodpoints"].destroy()
+        if slot["object"] and not (slot["object"]["type"].startswith("snake") or slot["object"]["type"] == "free"):
+            slot["object"]["label"].destroy()
         slot["object"] = cell
 
         if cell["type"].startswith("food"):
             pts = cell["points"]
             pts_label = Label(slot["frame"], text=pts, bg=bg, font=("Arial", 10), fg="black")
             pts_label.place(relx=0.5, rely=0.5, anchor=CENTER)
-            slot["object"]["foodpoints"] = pts_label
+            slot["object"]["label"] = pts_label
+        elif cell["type"].startswith("powerup"):
+            powerup_type = cell["type"][7:]
+            if powerup_type == "boost":
+                text = "⚡"
+            elif powerup_type == "multiplier":
+                text = str(cell["value"])+"x"
+            powerup_label = Label(slot["frame"], text=text, bg=bg, font=("Arial", 10), fg="black")
+            powerup_label.place(relx=0.5, rely=0.5, anchor=CENTER)
+            slot["object"]["label"] = powerup_label
 
 def neighbours(cell):
     pos = cell["pos"]
@@ -118,7 +133,7 @@ def makefood():
         weighted_points.extend([points] * int(probability * 10)) # total weight = 10
     points = random.choice(weighted_points)
 
-    food = {"type":"food"+str(points), "pos":food_pos, "points":points}
+    food = {"type":"food"+str(points), "pos":food_pos, "points":points, "label": None}
 
     occupy(food)
 
@@ -128,7 +143,6 @@ def makesnake():
         "body":[],
         "tail":[],
         "positions":[],
-        "outline": [],
         "cells_occupied": 0
     }
     head_pos = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
@@ -161,6 +175,21 @@ def makesnake():
                 snake["head"]["previous"] = cell
     return snake
 
+def makepowerup():
+    global state
+    if state != "PLAYING":
+        return
+
+    powerupx, powerupy = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
+    while grid[powerupy][powerupx]["object"]:
+        powerupx, powerupy = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
+    powerup_pos = (powerupx, powerupy)
+
+    powerup_type = random.choice(POWERUP_TYPES)
+    powerup_value = POWERUP_DATA[POWERUP_TYPES.index(powerup_type)]
+
+    powerup = {"type":"powerup"+powerup_type, "pos":powerup_pos, "value":powerup_value, "label": None}
+    occupy(powerup)
 
 # Movement
 def collision(snake, obj):
@@ -168,11 +197,14 @@ def collision(snake, obj):
     global step
     global game
     global grid
+    global score
+    global powerups
     if obj["type"].startswith("snake"):
         die()
     elif obj["type"].startswith("food"):
-        score["value"] += obj["points"]
+        score["value"] += (obj["points"] * (powerups["multiplier"] + 1))
         score["label"].config(text="Score: "+str(score["value"]))
+
         # Extend snake from TAIL
         tail = snake["tail"]
         pos = tail["pos"]
@@ -187,6 +219,59 @@ def collision(snake, obj):
         # Make new food but after a delay
         gen_step = random.randint(FOOD_GEN_STEP_MIN, FOOD_GEN_STEP_MAX)
         game.after(gen_step, makefood)
+    elif obj["type"].startswith("powerup"):
+        powerup_type = obj["type"][7:]
+        if powerup_type == "boost":
+            powerups["boost"] += obj["value"]
+        elif powerup_type == "multiplier":
+            powerups["multiplier"] *= obj["value"]
+
+        index = POWERUP_TYPES.index(powerup_type)
+        duration = POWERUP_DURATIONS[index]
+        powerups["active"] += 1
+
+        count = 0
+        for position in range(len(powerups["occupants"].keys())):
+            if position in powerups["occupants"].keys():
+                occupant = powerups["occupants"][position]
+                if occupant["type"] == powerup_type:
+                    count = position
+            else:
+                count = position
+
+        if count not in powerups["occupants"].keys():
+            powerups["occupants"][count] = {"n":0, "type": powerup_type}
+        powerups["occupants"][count]["n"] += 1
+
+        print(powerups, duration, count)
+
+        frame = Frame(game, bg=POWERUP_COLORS[index], height=7, width=GRID_SIZE*CELL_SIZE + 3)
+        frame.place(x=0, y=GRID_SIZE*CELL_SIZE - count * 7, anchor=SW)
+
+        game.update()
+        width = GRID_SIZE*CELL_SIZE + 3
+        change_step = int(duration/width)
+        def changesize():
+            if frame.winfo_exists():
+                width = frame.winfo_width()
+                width -= 1
+                frame.config(width=width)
+                game.after(change_step, changesize)
+        changesize()
+
+        def revert():
+            if state == "PLAYING":
+                # Revert values, show it
+                powerups[powerup_type] -= POWERUP_DATA[POWERUP_TYPES.index(powerup_type)]
+                powerups["active"] -= 1
+                powerups["occupants"][count]["n"] -= 1
+                frame.destroy()
+
+                # Make new powerup but after a delay
+                gen_step = random.randint(POWERUP_GEN_STEP_MIN, POWERUP_GEN_STEP_MAX)
+                game.after(gen_step, makepowerup)
+
+        game.after(duration, revert)
 
 def defaultdir(snake):
     neighbour_pos = neighbours(snake["head"])
@@ -203,6 +288,7 @@ def movesnake(snake):
     global state
     global movedir
     global game
+    global powerups
     if movedir == (0, 0): # Set starting direction
         movedir = defaultdir(snake)
     if state == "PLAYING":
@@ -241,7 +327,7 @@ def movesnake(snake):
             def move_selfcall():
                 global state
                 movesnake(snake)
-            game.after(step, move_selfcall)
+            game.after(step - powerups["boost"], move_selfcall)
 
 def movebind(key):
     global movedir, state
@@ -260,7 +346,7 @@ def movebind(key):
 
 # Combine game
 def startlife(window):
-    global state
+    global state, powerups
     state = "PLAYING"
     # Start core logic
     makegrid()
@@ -274,12 +360,31 @@ def startlife(window):
 
     def startmechanics(key):
         if key.keysym == "Return":
-            global state
+            global state, score
             state = "PLAYING"
+
+            # Initialize
+            score_label = Label(game,
+                                text="Score: 0", font=("Arial", 10, "bold"),
+                                fg="white", bg="black", width=8)
+            score_label.place(x=10, y=10)
+            score["label"] = score_label
+
+            for powerup in POWERUP_TYPES:
+                powerups[powerup] = 0
+            powerups["active"] = 0
+            powerups["occupants"] = {}
+
             movesnake(snake)
+
+            # Start generating
             for _ in range(FOOD_CELLS_PRESENT):
                 makefood()
-            window.unbind("<Return>")
+            for _ in range(POWERUPS_PRESENT):
+                gen_step = random.randint(POWERUP_GEN_STEP_MIN, POWERUP_GEN_STEP_MAX)
+                window.after(gen_step, makepowerup)
+            if state == "PLAYING":
+                window.unbind("<Return>")
             label.destroy()
 
     state = "WAITING"
@@ -302,13 +407,6 @@ def playgame(window, mode_step, passed_ender):
     def completesetup(): # Don't overwrite bind before input
         global state, game
         if state == "PLAYING":
-            # Score above cell not the other way round
-            label = Label(game,
-                          text="Score: 0", font=("Arial", 10, "bold"),
-                          fg="white", bg="black", width=8)
-            label.place(x=10, y=10)
-            score["label"] = label
-
             window.bind("<KeyPress>", movebind) # Don't need to bind right before mainloop
         elif game:
             game.after(500, completesetup)
