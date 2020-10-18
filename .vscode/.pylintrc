@@ -10,7 +10,8 @@ disable=unused-wildcard-import,
         global-statement,
         consider-using-enumerate,
         too-many-locals,
-        too-many-branches
+        too-many-branches,
+        too-many-statements
 
 [FORMAT]
 max-line-length=120
