@@ -80,9 +80,9 @@ def occupy(cell):
         elif cell["type"].startswith("powerup"):
             powerup_type = cell["type"][7:]
             if powerup_type == "boost":
-                text = "⚡"
+                text = "+⚡"
             elif powerup_type == "multiplier":
-                text = str(cell["value"])+"x"
+                text = "+"+str(cell["value"])+"x"
             powerup_label = Label(slot["frame"], text=text, bg=bg, font=("Arial", 10), fg="black")
             powerup_label.place(relx=0.5, rely=0.5, anchor=CENTER)
             slot["object"]["label"] = powerup_label
@@ -202,7 +202,7 @@ def collision(snake, obj):
     if obj["type"].startswith("snake"):
         die()
     elif obj["type"].startswith("food"):
-        score["value"] += (obj["points"] * (powerups["multiplier"] + 1))
+        score["value"] += obj["points"] * powerups["multiplier"]
         score["label"].config(text="Score: "+str(score["value"]))
 
         # Extend snake from TAIL
@@ -221,10 +221,7 @@ def collision(snake, obj):
         game.after(gen_step, makefood)
     elif obj["type"].startswith("powerup"):
         powerup_type = obj["type"][7:]
-        if powerup_type == "boost":
-            powerups["boost"] += obj["value"]
-        elif powerup_type == "multiplier":
-            powerups["multiplier"] *= obj["value"]
+        powerups[powerup_type] += obj["value"]
 
         index = POWERUP_TYPES.index(powerup_type)
         duration = POWERUP_DURATIONS[index]
@@ -243,8 +240,6 @@ def collision(snake, obj):
             powerups["occupants"][count] = {"n":0, "type": powerup_type}
         powerups["occupants"][count]["n"] += 1
 
-        print(powerups, duration, count)
-
         frame = Frame(game, bg=POWERUP_COLORS[index], height=7, width=GRID_SIZE*CELL_SIZE + 3)
         frame.place(x=0, y=GRID_SIZE*CELL_SIZE - count * 7, anchor=SW)
 
@@ -252,7 +247,7 @@ def collision(snake, obj):
         width = GRID_SIZE*CELL_SIZE + 3
         change_step = int(duration/width)
         def changesize():
-            if frame.winfo_exists():
+            if frame.winfo_exists() and state == "PLAYING":
                 width = frame.winfo_width()
                 width -= 1
                 frame.config(width=width)
@@ -262,7 +257,7 @@ def collision(snake, obj):
         def revert():
             if state == "PLAYING":
                 # Revert values, show it
-                powerups[powerup_type] -= POWERUP_DATA[POWERUP_TYPES.index(powerup_type)]
+                powerups[powerup_type] -= obj["value"]
                 powerups["active"] -= 1
                 powerups["occupants"][count]["n"] -= 1
                 frame.destroy()
@@ -360,18 +355,18 @@ def startlife(window):
 
     def startmechanics(key):
         if key.keysym == "Return":
-            global state, score
+            global state, score, powerups
             state = "PLAYING"
 
             # Initialize
             score_label = Label(game,
                                 text="Score: 0", font=("Arial", 10, "bold"),
-                                fg="white", bg="black", width=8)
+                                fg="white", bg="black", width=10)
             score_label.place(x=10, y=10)
             score["label"] = score_label
 
             for powerup in POWERUP_TYPES:
-                powerups[powerup] = 0
+                powerups[powerup] = POWERUP_DEFAULTS[POWERUP_TYPES.index(powerup)]
             powerups["active"] = 0
             powerups["occupants"] = {}
 
