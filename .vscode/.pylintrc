@@ -11,7 +11,8 @@ disable=unused-wildcard-import,
         consider-using-enumerate,
         too-many-locals,
         too-many-branches,
-        too-many-statements
+        too-many-statements,
+        cell-var-from-loop
 
 [FORMAT]
 max-line-length=120
