@@ -12,7 +12,7 @@ end_game = None # Pass down score update function from interface
 score = {"frame": None, "value": 0}
 step = 300
 
-# Semi-globals
+# Snake state
 state = "PLAYING"
 movedir = (0, 0)
 powerups = {}
@@ -111,7 +111,7 @@ def neighbours(cell):
 def die():
     global state, step, score
     state = "DEAD"
-    end_game(score["value"], step)
+    end_game(step, score["value"])
     reset()
 
 # Generators
