@@ -10,6 +10,9 @@ window = None
 screens = []
 
 def makewindow():
+    '''
+    Makes the main game window, created only once
+    '''
     WIN_SIZE = GRID_SIZE * CELL_SIZE
 
     global window
@@ -20,10 +23,17 @@ def makewindow():
     return window
 
 def clearscreens():
+    '''
+    Destroys all screens, called before making a new one.
+    Screen frames are not stored indefinitely, they are created on demand.
+    '''
     for screen in screens:
         screen.destroy()
 
 def endgame(mode_step, score):
+    '''
+    Shows the death interface. Updates the score after awaiting for activity response.
+    '''
     # Show a dying screen
     game = screens[-1]
     window.unbind("<KeyPress>")
@@ -69,13 +79,19 @@ def endgame(mode_step, score):
             displaymenu()
     window.bind("<Return>", resume)
 
-def displaycredits(frame):
-    credits_label = Label(frame,
+def displaycredits(screen):
+    '''
+    Shows creator credits on any given screen (omitted in game)
+    '''
+    credits_label = Label(screen,
                           fg="grey", bg="black",
                           text="Made by Ankur Bohra in tkinter", font=("Arial", 10))
     credits_label.place(relx=0.5, rely=0.935, anchor=CENTER)
 
 def displaymodes():
+    '''
+    Shows game mode/difficulty screen. Game is started with respective step from here.
+    '''
     global window
     clearscreens()
 
@@ -90,6 +106,9 @@ def displaymodes():
     mode_title.place(relx=0.5, rely=0.2, anchor=CENTER)
 
     def playmode(mode_step):
+        '''
+        Returns a callback but "injects" the mode_step variable into the environment
+        '''
         def command():
             modes_screen.pack_forget()
             game = playgame(window, mode_step, endgame)
@@ -116,6 +135,9 @@ def displaymodes():
     back_button.place(relx=0.03, rely=0.9)
 
 def displayscore():
+    '''
+    Shows stored scores sorted by mode and rank. Implements player filtered scores.
+    '''
     def showmode(mode_no, filter_player):
         global window
         if mode_no > len(GAME_MODES) - 1:
@@ -237,6 +259,9 @@ def displayscore():
     showmode(0, None)
 
 def displaymenu():
+    '''
+    Shows main menu, links all screens together.
+    '''
     global window
     clearscreens()
 

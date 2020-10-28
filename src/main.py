@@ -1,5 +1,5 @@
 '''
-One program to combine all screens and the game
+One entry program
 '''
 from interface import makewindow, displaymenu
 

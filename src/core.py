@@ -21,6 +21,10 @@ powerups = {}
 # Grid formation
 grid = []
 def makegrid():
+    '''
+    Makes the 2D matrix the game operates by.
+    Each cell in this grid represents a slot, holding one frame and the object associated with the slot.
+    '''
     global game
     for y in range(GRID_SIZE):
         row = []
@@ -34,6 +38,9 @@ def makegrid():
 
 # Utility
 def reset():
+    '''
+    Resets all game-dependent variables for the next run.
+    '''
     global grid, game, end_game, score, state, movedir
     grid = []
     movedir = (0, 0) # So the next life find movedir again
@@ -41,6 +48,9 @@ def reset():
     score["value"] = 0
 
 def makecell(cell_type, pos, data):
+    '''
+    Makes the cell object, makes object creation cleaner
+    '''
     cell = {"type": cell_type, "pos":pos}
     cell.update(data)
     return  cell
@@ -61,6 +71,9 @@ for index in range(len(POWERUP_TYPES)):
     name = "powerup"+str(powerup_type)
     color_map.update({name:color})
 def occupy(cell):
+    '''
+    Given a cell object, occupies a grid slot and reflects the changes.
+    '''
     if grid != [] and state == "PLAYING":
         cellx, celly = cell["pos"][0], cell["pos"][1]
 
@@ -88,6 +101,9 @@ def occupy(cell):
             slot["object"]["label"] = powerup_label
 
 def neighbours(cell):
+    '''
+    Finds the non-diagonal neighbours of a cell, adjusted for edge/corner cases.
+    '''
     pos = cell["pos"]
     cellx = pos[0]
     celly = pos[1]
@@ -109,6 +125,9 @@ def neighbours(cell):
     return cell_neighbours
 
 def die():
+    '''
+    Changes game state and initiates flow back to menu
+    '''
     global state, step, score
     state = "DEAD"
     end_game(step, score["value"])
@@ -116,6 +135,9 @@ def die():
 
 # Generators
 def makefood():
+    '''
+    Makes a weighted random food type in a random position
+    '''
     global state
     if state != "PLAYING":
         return
@@ -138,6 +160,9 @@ def makefood():
     occupy(food)
 
 def makesnake():
+    '''
+    Creates the snake and sets up the cell data
+    '''
     snake = {
         "head":[],
         "body":[],
@@ -176,6 +201,9 @@ def makesnake():
     return snake
 
 def makepowerup():
+    '''
+    Creates a random powerup in a random position
+    '''
     global state
     if state != "PLAYING":
         return
@@ -193,12 +221,10 @@ def makepowerup():
 
 # Movement
 def collision(snake, obj):
-    global state
-    global step
-    global game
-    global grid
-    global score
-    global powerups
+    '''
+    Checks cell of colission and acts accordingly.
+    '''
+    global state, step, game, grid, score, powerups
     if obj["type"].startswith("snake"):
         die()
     elif obj["type"].startswith("food"):
@@ -269,6 +295,9 @@ def collision(snake, obj):
         game.after(duration, revert)
 
 def defaultdir(snake):
+    '''
+    Gets the starting direction to move the snake in so it doesn't immediately die.
+    '''
     neighbour_pos = neighbours(snake["head"])
     for pos in neighbour_pos:
         if pos in snake["positions"]:
@@ -280,6 +309,9 @@ def defaultdir(snake):
     return randomdir
 
 def movesnake(snake):
+    '''
+    Fills and empties cells based on the direction the snake is moving in.
+    '''
     global state
     global movedir
     global game
@@ -325,6 +357,9 @@ def movesnake(snake):
             game.after(step - powerups["boost"], move_selfcall)
 
 def movebind(key):
+    '''
+    Updates the movement direction based on player input.
+    '''
     global movedir, state
     key_map = { # The Y signs are flipped since the Y axis is flipped
         "w": (0, -1),
@@ -341,6 +376,9 @@ def movebind(key):
 
 # Combine game
 def startlife(window):
+    '''
+    Sets up snake and starts movement, generation after waiting for input.
+    '''
     global state, powerups
     state = "PLAYING"
     # Start core logic
@@ -386,6 +424,9 @@ def startlife(window):
     window.bind("<Return>", startmechanics)
 
 def playgame(window, mode_step, passed_ender):
+    '''
+    Starts one play session
+    '''
     global game, step, score, end_game
 
     # Initialize globals
