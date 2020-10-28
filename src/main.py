@@ -1,5 +1,5 @@
 '''
-One entry program
+Entry program
 '''
 from interface import makewindow, displaymenu
 

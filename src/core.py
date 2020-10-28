@@ -53,7 +53,7 @@ def makecell(cell_type, pos, data):
     '''
     cell = {"type": cell_type, "pos":pos}
     cell.update(data)
-    return  cell
+    return cell
 
 color_map = {
         "snakehead": HEAD_COLOR,
@@ -161,7 +161,7 @@ def makefood():
 
 def makesnake():
     '''
-    Creates the snake and sets up the cell data
+    Creates the snake and sets up the cell data.
     '''
     snake = {
         "head":[],
@@ -202,7 +202,7 @@ def makesnake():
 
 def makepowerup():
     '''
-    Creates a random powerup in a random position
+    Creates a random powerup in a random position.
     '''
     global state
     if state != "PLAYING":
@@ -222,7 +222,7 @@ def makepowerup():
 # Movement
 def collision(snake, obj):
     '''
-    Checks cell of colission and acts accordingly.
+    Checks collision cells   and acts accordingly.
     '''
     global state, step, game, grid, score, powerups
     if obj["type"].startswith("snake"):
@@ -377,7 +377,7 @@ def movebind(key):
 # Combine game
 def startlife(window):
     '''
-    Sets up snake and starts movement, generation after waiting for input.
+    Set up snake and start movement and object generation after input.
     '''
     global state, powerups
     state = "PLAYING"
