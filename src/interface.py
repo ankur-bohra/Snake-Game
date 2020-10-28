@@ -19,6 +19,7 @@ def makewindow():
     window = Tk()
     window.title("Snake Game")
     window.geometry(str(WIN_SIZE)+"x"+str(WIN_SIZE))
+    window.resizable(width=False, height=False)
 
     return window
 
