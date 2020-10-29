@@ -147,9 +147,11 @@ def displayscore():
         with open("src/scores.json", "r+") as scores_file:
             scores = json.load(scores_file)
             sorted_scores = list(scores[mode])
+            for index in range(len(sorted_scores)):
+                score = sorted_scores[index]
+                sorted_scores[index] = int(score)
             sorted_scores.sort(reverse=True)
             sorted_scores = sorted_scores[:7] # upto 7 highscores shown
-
             clearscreens()
 
             score_screen = Frame(window, bg="black")
@@ -219,7 +221,7 @@ def displayscore():
             placed = 0
             for index in range(len(sorted_scores)):
                 score = sorted_scores[index]
-                player = scores[mode][score]
+                player = scores[mode][str(score)]
                 if filter_player and player != filter_player:
                     continue
                 rank = index + 1
