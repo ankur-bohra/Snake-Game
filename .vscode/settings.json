@@ -1,6 +1,0 @@
-{
-    "python.linting.pylintArgs": [
-        "--rcfile",
-        ".vscode\\.pylintrc"
-    ]
-}
