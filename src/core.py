@@ -23,7 +23,7 @@ grid = []
 def makegrid():
     '''
     Makes the 2D matrix the game operates by.
-    Each cell in this grid represents a slot, holding one frame and the object associated with the slot.
+    Cell -> Frame + Object
     '''
     global game
     for y in range(GRID_SIZE):
